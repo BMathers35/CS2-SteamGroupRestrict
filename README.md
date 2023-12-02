@@ -28,9 +28,9 @@ If a player logs out of the server, the player will be deleted from the allowed 
 {
   "GeneralSettings": {
     // Enter the Group ID of your Steam Group here (found on the Edit Group Profile page).
-    "SteamGroupId": "10599306",
+    "SteamGroupId": "",
     // Obtain an API Key from this page https://steamcommunity.com/dev/apikey and fill in this field.
-    "SteamApiKey": "3B90E1F828035F66D53DE0226ADA4BBA",
+    "SteamApiKey": "",
     "Prefix": "{Blue}[SGR]"
   },
   "Messages": {
