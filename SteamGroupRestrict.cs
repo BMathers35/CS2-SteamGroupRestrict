@@ -1,15 +1,14 @@
 ﻿using System.Net.Http.Json;
-using System.Reflection;
 using System.Text.Json;
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities;
-using CounterStrikeSharp.API.Modules.Utils;
 
 namespace SteamGroupRestrict;
 
-[MinimumApiVersion(88)]
+[MinimumApiVersion(115)]
 public class SteamGroupRestrict : BasePlugin, IPluginConfig<Config>
 {
     public override string ModuleName => "SteamGroupRestrict";
@@ -179,7 +178,7 @@ public class SteamGroupRestrict : BasePlugin, IPluginConfig<Config>
         
     }
 
-    private async Task<bool> CheckPlayerGroups(CCSPlayerController? player)
+    private bool CheckPlayerGroups(CCSPlayerController? player)
     {
 
         if (player == null || !player.IsValid || player.IsBot) return false;
@@ -197,22 +196,24 @@ public class SteamGroupRestrict : BasePlugin, IPluginConfig<Config>
         }
         else
         {
-            string apiUrl = $"https://api.steampowered.com/ISteamUser/GetUserGroupList/v1/?key={Config.GeneralSettings.SteamApiKey}&steamid={steamId}";
             
-            using (HttpClient httpClient = new HttpClient())
+            string apiUrl = $"https://api.steampowered.com/ISteamUser/GetUserGroupList/v1/?key={Config.GeneralSettings.SteamApiKey}&steamid={steamId}";
+
+            try
             {
                 
-                try
+                var httpClient = new HttpClient();
+                Task.Run(async () =>
                 {
-                
+
                     JsonElement jsonData = await httpClient.GetFromJsonAsync<JsonElement>(apiUrl);
                     dynamic? response = jsonData.Deserialize<dynamic>();
-                
-                    if (jsonData.TryGetProperty("response", out var responseProperty) && responseProperty.ValueKind == JsonValueKind.Object)
+
+                    if (jsonData.TryGetProperty("response", out var responseProperty) &&
+                        responseProperty.ValueKind == JsonValueKind.Object)
                     {
-                        
+
                         bool success = responseProperty.GetProperty("success").GetBoolean();
-                
                         if (success)
                         {
                             
@@ -228,19 +229,22 @@ public class SteamGroupRestrict : BasePlugin, IPluginConfig<Config>
                                 }
                             
                             }
-                        
+                            
                         }
+
                     }
 
-                }
-                catch (HttpRequestException ex)
-                {
-                
-                    Console.WriteLine($"[SteamGroupRestrict] An error occurred: {ex.Message}");
                     return false;
+                    
+                });
+
+            }
+            catch (Exception e)
+            {
                 
-                }
-            
+                Console.WriteLine($"[SteamGroupRestrict] An error occurred: {e.Message}");
+                return false;
+                
             }
             
         }
@@ -250,20 +254,33 @@ public class SteamGroupRestrict : BasePlugin, IPluginConfig<Config>
     }
 
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    private async void PlayerGroupCheck(CCSPlayerController? player, CommandInfo info)
+    private void PlayerGroupCheck(CCSPlayerController? player, CommandInfo info)
     {
         
         if (player == null || !player.IsValid || player.IsBot) return;
         if (Config.GeneralSettings.SteamApiKey == "-" || Config.GeneralSettings.SteamGroupId == "-") return;
+
+        Task.Run(() =>
+        {
+            
+            Server.NextFrame(() =>
+            {
+                
+                if (CheckPlayerGroups(player))
+                {
+                    player.PrintToChat(ReplaceTags($"{Config.GeneralSettings.Prefix} {Config.Messages.JoinedGroup}"));
+                }
+                else
+                {
+                    player.PrintToChat(ReplaceTags($"{Config.GeneralSettings.Prefix} {Config.Messages.NotJoinedGroup}"));
+                }
+                
+            });
+            
+            return Task.CompletedTask;
+            
+        });
         
-        if (await CheckPlayerGroups(player))
-        {
-            player.PrintToChat(ReplaceTags($"{Config.GeneralSettings.Prefix} {Config.Messages.JoinedGroup}"));
-        }
-        else
-        {
-            player.PrintToChat(ReplaceTags($"{Config.GeneralSettings.Prefix} {Config.Messages.NotJoinedGroup}"));
-        }
         
     }
     
@@ -287,22 +304,6 @@ public class SteamGroupRestrict : BasePlugin, IPluginConfig<Config>
 
         return message;
         
-        // if (message.Contains('{'))
-        // {
-        //     string modifiedValue = message;
-        //     foreach (FieldInfo field in typeof(ChatColors).GetFields())
-        //     {
-        //         string pattern = $"{{{field.Name}}}";
-        //         if (message.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-        //         {
-        //             modifiedValue = modifiedValue.Replace(pattern, 
-        //                 field.GetValue(null)!.ToString(), 
-        //                 StringComparison.OrdinalIgnoreCase);
-        //         }
-        //     }
-        // }
-        //
-        // return message;
     }
     
 }
