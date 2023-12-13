@@ -4,7 +4,7 @@
 This CSSharp plugin restricts chat commands to players who have not joined the steam group
 
 ### Requirments
-- [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp/) **Tested on v88**
+- [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp/) **v115**
 - [Steam Api Key](https://steamcommunity.com/dev/apikey)
 
 ### Features
